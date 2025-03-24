@@ -6,14 +6,38 @@ import os
 import sys
 import shutil
 from datetime import datetime
+import wandb
+import collections
+import torch
+import torch.nn as nn
+def init_wandb_config(wandb_logger, args):
+    """
+    Initialize wandb configuration.
+    Args:
+        args: Command-line arguments.
+    """
+    # Initialize wandb
+    config = {
+        'batch_size': args.batch_size,
+        'learning_rate': args.learning_rate,
+        'epochs': args.epochs,
+        'seed': args.seed,
+        'dataset_name': args.dataset_name,
+        'model_name': args.model_name,
+        'gpu_id': args.gpu_id,
+        'augmentation': args.augmentation
+    }
+    wandb_logger.config.update(config)
+
+    return wandb_logger
 
 def logger(log_path):
-    os.makedirs(os.path.dirname(log_path), exist_ok=True)
+    os.makedirs(log_path, exist_ok=True)
     # 如果文件夹内的log文件超过20个， 则删除最早的一个
-    log_files = [f for f in os.listdir(os.path.dirname(log_path)) if f.endswith('.log')]
-    log_files.sort(key=lambda x: os.path.getmtime(os.path.join(os.path.dirname(log_path), x)))
+    log_files = [f for f in os.listdir(log_path) if f.endswith('.log')]
+    log_files.sort(key=lambda x: os.path.getmtime(os.path.join(log_path, x)))
     if len(log_files) > 20:
-        os.remove(os.path.join(os.path.dirname(log_path), log_files[0]))
+        os.remove(os.path.join(log_path, log_files[0]))
     # 创建一个logger
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)

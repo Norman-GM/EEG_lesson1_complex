@@ -5,7 +5,7 @@ import h5py
 import os
 import mne
 # 不显示MNE信息
-mne.set_log_level('WARNING')
+mne.set_log_level('ERROR')
 # 创建Dataset基类
 class Dataset(ABC):
     """
@@ -39,6 +39,7 @@ class BCICIV2A(Dataset):
         for sub in range(1, 10):
             for session in ['T', 'E']:
                 raw = mne.io.read_raw_gdf(os.path.join(self.dataset_path, 'A0' + str(sub) + session + '.gdf'), preload=True)
+
                 raw.drop_channels(['EOG-left', 'EOG-central', 'EOG-right'])
                 events, annot = mne.events_from_annotations(raw)
                 # do some plot if you want
@@ -46,35 +47,33 @@ class BCICIV2A(Dataset):
                 # raw.plot()
                 # raw.plot_psd()
                 # raw.plot_psd_topo()
-                raw.filter(1, 45)
+                raw.filter(8, 35)
                 # raw.notch_filter(50) # in china, the power frequency is 50Hz, but in the US, it is 60Hz,
 
                 # Create the epochs
                 if session == 'T':
-                    event_id = dict({'769': 7, '770': 8, '771': 9, '772': 10}) if sub != 3 \
+                    event_id = dict({'769': 7, '770': 8, '771': 9, '772': 10}) if sub != 4 \
                         else dict({'769': 5, '770': 6, '771': 7, '772': 8})
                 else:
                     event_id = dict({'783': 7})
-                epochs = mne.Epochs(raw, events, event_id, tmin=0, tmax=3, baseline=None, preload=True)
-                epochs_data = epochs.get_data() * 1e6
-                epochs_data = epochs_data.unsqueeze(1) # 288 x 1 x 22 x 876
-                epoch_label = epochs.events[:, -1] - min(epochs.events[:, -1]) # 288
+
+                epochs = mne.Epochs(raw, events, event_id, tmin=1, tmax=4, baseline=None, preload=True)
+                epochs_data = epochs.get_data(copy = True) * 1e6
+                epochs_data = epochs_data[:, np.newaxis, ...][..., 1:] # 288 x 1 x 22 x 751 -> 288 x 1 x 22 x 750
+                label_file_name = os.path.join(self.dataset_path, 'true_labels', 'A0' + str(sub) + session + '.mat')
+                # load the label
+                epoch_label = sio.loadmat(label_file_name)['classlabel'].squeeze() - 1 #  -1 for torch
+                # epoch_label = epochs.events[:, -1] - min(epochs.events[:, -1]) # 288  # this way could get train label, but not for test label
                 # may use exponential_moving_standardize?
                 # epochs_data = self.exponential_moving_standardize(epochs_data)
-                # or do some augmentation
-                if self.args.augmentation:
-                    epochs_data, epoch_label = self.augmentation()
+                sub_i = sub - 1
                 if session == 'T':
-                    self.data.update({sub: {'train_data': epochs_data}})
-                    self.label.update({sub: {'train_label': epoch_label}})
+                    self.data.update({sub_i: {'train_data': epochs_data}})
+                    self.label.update({sub_i: {'train_label': epoch_label}})
                 else:
-                    self.data[sub].update({'test_data': epochs_data})
-                    self.label[sub].update({'test_label': epoch_label})
-
-    def augmentation(self):
-        pass
-
-
+                    self.data[sub_i].update({'test_data': epochs_data})
+                    self.label[sub_i].update({'test_label': epoch_label})
+        return self.data, self.label
     def exponential_moving_standardize(self, data):
         from braindecode.preprocessing.preprocess import exponential_moving_standardize
         standard_data = exponential_moving_standardize(data)

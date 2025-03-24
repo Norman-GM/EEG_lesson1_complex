@@ -10,7 +10,6 @@ class Load_data():
         self.data = None
         self.label = None
         self.subjects = None
-        self.load_data()
     # 单例模式
     def __new__(cls, *args, **kwargs):
         if not hasattr(cls, 'instance'):
@@ -24,6 +23,7 @@ class Load_data():
             self.logger.info(f'Load {self.dataset_name} dataset successfully!')
         elif self.dataset_name == 'numpy_sample':
             # if you want to test the code, you can use this sample data
-            self.data = np.random.randn(256,1,64,256)
+            self.data = np.random.randn(8, 256,1,64,256)
             self.label = np.random.choice([0, 1], 256)
-
+            self.label = np.repeat(self.label, 8, axis=0)
+        return self.data, self.label
