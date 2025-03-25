@@ -144,7 +144,7 @@ class ClassificationHead(nn.Sequential):
             nn.Linear(emb_size, n_classes)
         )
         self.fc = nn.Sequential(
-            nn.Linear(2360, 256),
+            nn.Linear(2440, 256),
             nn.ELU(),
             nn.Dropout(0.5),
             nn.Linear(256, 32),

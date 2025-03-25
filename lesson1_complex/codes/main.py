@@ -10,7 +10,7 @@ def make_parser():
     parser.add_argument('--dataset_path', type=str, help='dataset path', default=r'D:\dataset\BCICIV_2a_gdf')
     parser.add_argument('--use_org_data', type=bool, help='use original data', default=True)
     parser.add_argument('--paradigm', type=str, help='paradigm', default='cross_session')
-    parser.add_argument('--augmentation', type=bool, help='use augmentation', default=False)
+    parser.add_argument('--augmentation', type=bool, help='use augmentation', default=True)
     parser.add_argument('--use_gpu', type=bool, help='use gpu', default=True)
     parser.add_argument('--gpu_id', type=int, help='gpu id', default=0)
     parser.add_argument('--log_dir', type=str, help='log directory', default='./logs')

@@ -58,14 +58,12 @@ class BCICIV2A(Dataset):
                         else dict({'769': 5, '770': 6, '771': 7, '772': 8})
                 else:
                     event_id = dict({'783': 7})
-
-                epochs = mne.Epochs(raw, events, event_id, tmin=2, tmax=5.9, baseline=None, preload=True)
+                picks = mne.pick_types(raw.info, meg=False, eeg=True, eog=False, stim=False, exclude='bads')
+                epochs = mne.Epochs(raw, events, event_id,picks=picks, tmin=0, tmax=3.996, baseline=None, preload=True)
                 epochs_data = epochs.get_data(copy = True) * 1e6
-                for i in range(epochs_data.shape[0]):
-                    epochs_data[i] = self.normalize_data(epochs_data[i])
                 # may use exponential_moving_standardize?
                 # epochs_data = self.exponential_moving_standardize(epochs_data)
-                epochs_data = epochs_data[:, np.newaxis, ...][..., 1:] # 288 x 1 x 22 x 751 -> 288 x 1 x 22 x 750
+                epochs_data = epochs_data[:, np.newaxis, ...]
                 label_file_name = os.path.join(self.dataset_path, 'true_labels', 'A0' + str(sub) + session + '.mat')
                 # load the label
                 epoch_label = sio.loadmat(label_file_name)['classlabel'].squeeze() - 1 #  -1 for torch
@@ -79,10 +77,7 @@ class BCICIV2A(Dataset):
                     self.data[sub_i].update({'test_data': epochs_data})
                     self.label[sub_i].update({'test_label': epoch_label})
         return self.data, self.label
-    def normalize_data(self, data):
-        scaler = StandardScaler()
-        data = scaler.fit_transform(data)
-        return data
+
     def exponential_moving_standardize(self, data):
         from braindecode.preprocessing.preprocess import exponential_moving_standardize
         standard_data = exponential_moving_standardize(data)

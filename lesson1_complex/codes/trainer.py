@@ -141,8 +141,8 @@ class Trainer():
         else:
             self.logger.info(f"Training without validation set") # used in EEG_CONFORMER
             # 合并训练集和验证集
-            train_data = np.concatenate([self.train_dataset.data, self.val_dataset.data], axis=0)
-            train_label = np.concatenate([self.train_dataset.labels, self.val_dataset.labels], axis=0)
+            train_data = np.concatenate([self.train_dataset.data.cpu().numpy(), self.val_dataset.data.cpu().numpy()], axis=0)
+            train_label = np.concatenate([self.train_dataset.labels.cpu().numpy(), self.val_dataset.labels.cpu().numpy()], axis=0)
 
             # Create a dataset from the combined data
             from codes.paradigm.dataset_2a_paradigm import EEG_org_dataset  # Import the dataset class
@@ -241,7 +241,7 @@ class Trainer():
         """
         Test the model.
         """
-        test_loader = torch.utils.data.DataLoader(self.test_dataset, batch_size=self.args.batch_size, shuffle=False)
+        test_loader = torch.utils.data.DataLoader(self.test_dataset, batch_size=self.args.batch_size, shuffle=True)
         self.model.eval()
         test_loss = 0.0
         test_acc = 0.0
@@ -272,7 +272,7 @@ class Trainer():
         self.model = self.model_init(input_shape = self.dataset.input_shape, output_shape = self.dataset.output_shape)
         self.model_config = YamlHandler(os.path.join(self.args.config_dir, model_name + '.yaml')).read_yaml()
         if self.model_config[self.args.paradigm]['optimizer'].lower() == 'adam':
-            self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.model_config[self.args.paradigm]['learning_rate'])
+            self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.model_config[self.args.paradigm]['learning_rate'], betas=(0.5, 0.999))
         elif self.model_config[self.args.paradigm]['optimizer'].lower() == 'sgd':
 
             self.optimizer = torch.optim.SGD(self.model.parameters(), lr=self.model_config[self.args.paradigm]['learning_rate'], momentum=0.9)
