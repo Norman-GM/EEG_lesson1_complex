@@ -10,7 +10,8 @@ import wandb
 import collections
 import torch
 import torch.nn as nn
-def init_wandb_config(wandb_logger, args):
+import yaml
+def init_wandb_config(wandb_logger, args, model_name):
     """
     Initialize wandb configuration.
     Args:
@@ -23,7 +24,7 @@ def init_wandb_config(wandb_logger, args):
         'epochs': args.epochs,
         'seed': args.seed,
         'dataset_name': args.dataset_name,
-        'model_name': args.model_name,
+        'model_name': model_name,
         'gpu_id': args.gpu_id,
         'augmentation': args.augmentation
     }
@@ -89,3 +90,18 @@ def seed_everything(seed: int = 2025):
     torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
+
+
+class YamlHandler:
+    def __init__(self, file):
+        self.file = file
+
+    def read_yaml(self, encoding='utf-8'):
+        """读取yaml数据"""
+        with open(self.file, encoding=encoding) as f:
+            return yaml.load(f.read(), Loader=yaml.FullLoader)
+
+    def write_yaml(self, data, encoding='utf-8'):
+        """向yaml文件写入数据"""
+        with open(self.file, encoding=encoding, mode='w') as f:
+            return yaml.dump(data, stream=f, allow_unicode=True)

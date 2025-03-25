@@ -144,13 +144,13 @@ class ClassificationHead(nn.Sequential):
             nn.Linear(emb_size, n_classes)
         )
         self.fc = nn.Sequential(
-            nn.Linear(1760, 256),
+            nn.Linear(2360, 256),
             nn.ELU(),
             nn.Dropout(0.5),
             nn.Linear(256, 32),
             nn.ELU(),
             nn.Dropout(0.3),
-            nn.Linear(32, 4)
+            nn.Linear(32, n_classes)
         )
 
     def forward(self, x):
@@ -169,7 +169,7 @@ class Loss_fn(nn.Module):
 
 
 @MODEL_REGISTOR.register(loss_fn=Loss_fn()) # Register the model with loss function
-class Conformer(BaseModel):
+class EEGConformer(BaseModel):
     def __init__(self,input_shape, output_shape, emb_size=40, depth=6, n_classes=4):
         super().__init__(input_shape=input_shape, output_shape=output_shape)
 

@@ -4,6 +4,7 @@ import scipy.io as sio
 import h5py
 import os
 import mne
+from sklearn.preprocessing import StandardScaler
 # 不显示MNE信息
 mne.set_log_level('ERROR')
 # 创建Dataset基类
@@ -47,7 +48,8 @@ class BCICIV2A(Dataset):
                 # raw.plot()
                 # raw.plot_psd()
                 # raw.plot_psd_topo()
-                raw.filter(8, 35)
+
+                raw.filter(4, 40, fir_design='firwin')
                 # raw.notch_filter(50) # in china, the power frequency is 50Hz, but in the US, it is 60Hz,
 
                 # Create the epochs
@@ -57,15 +59,18 @@ class BCICIV2A(Dataset):
                 else:
                     event_id = dict({'783': 7})
 
-                epochs = mne.Epochs(raw, events, event_id, tmin=1, tmax=4, baseline=None, preload=True)
+                epochs = mne.Epochs(raw, events, event_id, tmin=2, tmax=5.9, baseline=None, preload=True)
                 epochs_data = epochs.get_data(copy = True) * 1e6
+                for i in range(epochs_data.shape[0]):
+                    epochs_data[i] = self.normalize_data(epochs_data[i])
+                # may use exponential_moving_standardize?
+                # epochs_data = self.exponential_moving_standardize(epochs_data)
                 epochs_data = epochs_data[:, np.newaxis, ...][..., 1:] # 288 x 1 x 22 x 751 -> 288 x 1 x 22 x 750
                 label_file_name = os.path.join(self.dataset_path, 'true_labels', 'A0' + str(sub) + session + '.mat')
                 # load the label
                 epoch_label = sio.loadmat(label_file_name)['classlabel'].squeeze() - 1 #  -1 for torch
                 # epoch_label = epochs.events[:, -1] - min(epochs.events[:, -1]) # 288  # this way could get train label, but not for test label
-                # may use exponential_moving_standardize?
-                # epochs_data = self.exponential_moving_standardize(epochs_data)
+
                 sub_i = sub - 1
                 if session == 'T':
                     self.data.update({sub_i: {'train_data': epochs_data}})
@@ -74,6 +79,10 @@ class BCICIV2A(Dataset):
                     self.data[sub_i].update({'test_data': epochs_data})
                     self.label[sub_i].update({'test_label': epoch_label})
         return self.data, self.label
+    def normalize_data(self, data):
+        scaler = StandardScaler()
+        data = scaler.fit_transform(data)
+        return data
     def exponential_moving_standardize(self, data):
         from braindecode.preprocessing.preprocess import exponential_moving_standardize
         standard_data = exponential_moving_standardize(data)
