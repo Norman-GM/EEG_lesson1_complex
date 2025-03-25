@@ -4,7 +4,7 @@ import torch
 import collections
 import torch.nn as nn
 import wandb
-from utils import init_wandb_config, YamlHandler
+from utils import init_wandb_config, YamlHandler, get_cur_time
 import os
 import numpy as np
 import codes.models.ModelResgistry
@@ -104,8 +104,8 @@ class Trainer():
                     self.args.epochs = self.model_config[self.args.paradigm]['num_epochs']
 
                 wandb_logger = wandb.init(entity='norman123', project='lesson_1_complex',
-                                          dir=f'./results/wandb/Cross_session/sub_+{sub}/{self.model_name}',
-                                          name='Cross_session_' + self.model_name +'_sub_' + str(sub),
+                                          dir=f'./results/wandb/Cross_session/sub_{sub}/{self.model_name}',
+                                          name='Cross_session_' + self.model_name +'_sub_' + str(sub) + '_' + get_cur_time(),
                                           resume='allow')
                 wandb_logger = init_wandb_config(wandb_logger, args=self.args, model_name=self.model_name)
                 self.wandb_logger = wandb_logger
@@ -135,10 +135,26 @@ class Trainer():
         """
         Train the model.
         """
-        train_loader = torch.utils.data.DataLoader(self.train_dataset, batch_size=self.args.batch_size, shuffle=True)
+        if self.model_config[self.args.paradigm]['use_validation']:
+            self.logger.info(f"Training with validation set")
+            train_loader = torch.utils.data.DataLoader(self.train_dataset, batch_size=self.args.batch_size, shuffle=True)
+        else:
+            self.logger.info(f"Training without validation set") # used in EEG_CONFORMER
+            # 合并训练集和验证集
+            train_data = np.concatenate([self.train_dataset.data, self.val_dataset.data], axis=0)
+            train_label = np.concatenate([self.train_dataset.labels, self.val_dataset.labels], axis=0)
+
+            # Create a dataset from the combined data
+            from codes.paradigm.dataset_2a_paradigm import EEG_org_dataset  # Import the dataset class
+            train_dataset = EEG_org_dataset(train_data, train_label, self.args)
+            # Create the loader for the combined dataset
+            train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=self.args.batch_size, shuffle=True)
         # Set the model to training mode
         self.model.train()
         min_val_loss = 1e10
+        save_dirs = os.path.join(self.args.save_models_dir, self.args.paradigm, self.model_name,
+                                 str(self.cur_sub))
+        os.makedirs(save_dirs, exist_ok=True)
         for epoch in range(self.model_config[self.args.paradigm]['num_epochs']):
             batch_loss = 0.0
             batch_acc = 0.0
@@ -164,29 +180,29 @@ class Trainer():
             # Compute the average loss and accuracy for the epoch
             epoch_loss = batch_loss / len(train_loader)
             epoch_acc = batch_acc / len(train_loader)
-
             self.result_dict['Train_loss'].append(epoch_loss)
             self.result_dict['Train_acc'].append(epoch_acc)
             # Log the results
             self.wandb_logger.log({"Train_loss": epoch_loss, "Train_acc": epoch_acc})
             self.logger.info(f"Sub: {self.cur_sub}, Epoch: {epoch + 1}/{self.model_config[self.args.paradigm]['num_epochs']}, Train Loss: {epoch_loss}, Train Accuracy: {epoch_acc}")
-            # Validate the model
-            if epoch % self.model_config[self.args.paradigm]['val_interval'] == 0:
+            # Validate the model if using validation set
+
+
+            if epoch % self.model_config[self.args.paradigm]['val_interval'] == 0 and self.model_config[self.args.paradigm]['use_validation']:
                 val_loss, val_acc = self.__val()
                 if val_loss < min_val_loss:
                     min_val_loss = min(min_val_loss, val_loss)
                     save_model_state_dict = self.model.state_dict()
-                    save_dirs = os.path.join(self.args.save_models_dir, self.args.paradigm, self.model_name,
-                                             str(self.cur_sub))
-                    os.makedirs(save_dirs, exist_ok=True)
                     torch.save(save_model_state_dict, os.path.join(save_dirs, 'best.pth'))
 
                 # Save the model
                 if self.args.save_model:
-                    save_dirs = os.path.join(self.args.save_models_dir,self.args.paradigm, self.model_name, str(self.cur_sub))
-                    os.makedirs(save_dirs, exist_ok=True)
                     torch.save(self.model.state_dict(), os.path.join(save_dirs, 'epoch_' + str(epoch) + '.pth'))
                     self.logger.info(f"Model for subject {self.cur_sub} saved")
+        if not self.model_config[self.args.paradigm]['use_validation']:
+            torch.save(self.model.state_dict(), os.path.join(save_dirs, 'train_without_val.pth'))
+            self.logger.info(f"Model for subject {self.cur_sub} saved")
+
 
     def __val(self):
         """
@@ -359,6 +375,8 @@ class Trainer():
                 self.__train()
 
                 # Validate model
+                if not self.model_config[self.args.paradigm]['use_validation']:
+                    raise ValueError("Validation set is not used. Please check your configuration.")
                 val_loss, val_acc = self.__val()
                 # Log validation loss
                 val_losses.append(val_loss)

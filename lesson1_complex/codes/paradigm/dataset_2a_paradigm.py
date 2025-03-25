@@ -43,8 +43,8 @@ class Dataset_2a_Paradigm(BaseParadigm):
         train_val_data, train_val_label = self.data[sub]['train_data'], self.label[sub]['train_label']
         test_data, test_label = self.data[sub]['test_data'], self.label[sub]['test_label']
         train_data, val_data, train_label, val_label = train_test_split(
-            train_val_data, train_val_label, test_size=0.2, random_state=self.args.seed
-        )
+            train_val_data, train_val_label, test_size=0.2, random_state=self.args.seed, shuffle=False
+        ) # in EEG, to avoid data leakage, we should not shuffle the data
         # Create datasets
         train_dataset = EEG_org_dataset(train_data, train_label, self.args)
         val_dataset = EEG_org_dataset(val_data, val_label, self.args)

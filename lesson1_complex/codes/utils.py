@@ -11,6 +11,14 @@ import collections
 import torch
 import torch.nn as nn
 import yaml
+def get_cur_time():
+    """
+    Get the current time in a formatted string.
+    Returns:
+        str: Current time formatted as 'YYYY_MM_DD_HH_MM'.
+    """
+    return datetime.now().strftime('%Y_%m_%d_%H_%M')
+
 def init_wandb_config(wandb_logger, args, model_name):
     """
     Initialize wandb configuration.

@@ -4,3 +4,4 @@ cross_session: # use params in https://github.com/eeyhsong/EEG-Conformer/blob/ma
   num_epochs: 2000
   learning_rate: 0.002
   val_interval: 10
+  use_validation: False
