@@ -15,7 +15,7 @@ class Dataset_2a_Paradigm(BaseParadigm):
         }
         self.num_classes = len(self.classes_dict)
         self.sample_rate = 250
-        self.window_length = 3
+        self.window_length = 4
         self.num_channels = 22
         self.num_subject = 9
         self.input_shape = (self.num_channels, self.sample_rate * self.window_length)

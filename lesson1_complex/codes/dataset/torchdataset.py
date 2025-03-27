@@ -47,10 +47,12 @@ class EEG_org_dataset(torch.utils.data.Dataset):
         '''
         # data = random_flip(data)
         # You can add more augmentation techniques here
+
+        # Segmentation and Reconstruction (S&R) data augmentation
         data, label = self.interaug(data, label)
         return data, label
 
-        # Segmentation and Reconstruction (S&R) data augmentation
+
 
     def interaug(self, timg, label):
 
@@ -68,7 +70,6 @@ class EEG_org_dataset(torch.utils.data.Dataset):
             cls_idx = np.where(label == clsAug)
             tmp_data = timg[cls_idx]
             tmp_label = label[cls_idx]
-
             tmp_aug_data = np.zeros((number_records_by_augmentation, 1, self.number_channel, self.data_length))
             tmp_aug_label = np.zeros((number_records_by_augmentation))
             for trial_i in range(number_records_by_augmentation):

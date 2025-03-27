@@ -11,6 +11,8 @@ import collections
 import torch
 import torch.nn as nn
 import yaml
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, cohen_kappa_score
+
 def get_cur_time():
     """
     Get the current time in a formatted string.
@@ -113,3 +115,18 @@ class YamlHandler:
         """向yaml文件写入数据"""
         with open(self.file, encoding=encoding, mode='w') as f:
             return yaml.dump(data, stream=f, allow_unicode=True)
+
+
+def calMetrics(y_true, y_pred):
+    number = max(y_true)
+    if number == 2:
+        mode = 'binary'
+    else:
+        mode = 'macro'
+
+    accuracy = accuracy_score(y_true, y_pred)
+    precison = precision_score(y_true, y_pred, average=mode)
+    recall = recall_score(y_true, y_pred, average=mode)
+    f1 = f1_score(y_true, y_pred, average=mode)
+    kappa = cohen_kappa_score(y_true, y_pred)
+    return accuracy, precison, recall, f1, kappa

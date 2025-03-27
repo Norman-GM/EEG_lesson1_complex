@@ -18,6 +18,7 @@ def make_parser():
     parser.add_argument('--save_results_dir', type=str, help='save directory', default='./results')
     parser.add_argument('--save_model', type=bool, help='save model', default=True)
     parser.add_argument('--is_choose_best_hyper', type=bool, help='choose best hyperparameters', default=False)
+    parser.add_argument('--draw_list', type =str, nargs= '+', help='draw list', default=['confusion_matrix', 'tsne'])
     return parser
 
 def main():

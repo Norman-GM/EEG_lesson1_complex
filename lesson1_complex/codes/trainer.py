@@ -4,12 +4,15 @@ import torch
 import collections
 import torch.nn as nn
 import wandb
-from utils import init_wandb_config, YamlHandler, get_cur_time
+from utils import init_wandb_config, YamlHandler, get_cur_time, calMetrics
 import os
 import numpy as np
 import codes.models.ModelResgistry
-import codes.models.EEG_conformer # register the model
-
+# import codes.models.EEG_conformer # register the model
+import codes.models.EEG_conformer_CTN
+# from torchinfo import summary
+from torchsummary import summary
+from codes.draw.draw_class import Draw
 class Trainer():
     def __init__(self, data, label, args, logger):
         """
@@ -102,7 +105,7 @@ class Trainer():
                     self.args.batch_size = self.model_config[self.args.paradigm]['batch_size']
                     self.args.optimizer = self.model_config[self.args.paradigm]['optimizer']
                     self.args.epochs = self.model_config[self.args.paradigm]['num_epochs']
-
+                os.makedirs(os.path.join(self.args.save_models_dir, self.args.paradigm, self.model_name), exist_ok=True)
                 wandb_logger = wandb.init(entity='norman123', project='lesson_1_complex',
                                           dir=f'./results/wandb/Cross_session/sub_{sub}/{self.model_name}',
                                           name='Cross_session_' + self.model_name +'_sub_' + str(sub) + '_' + get_cur_time(),
@@ -113,7 +116,6 @@ class Trainer():
                 self.logger.info(f"Training model: {self.model_name} for subject: {sub}")
                 # Split data for this subject into train, val and test sets
                 self.get_dataset(sub)
-
 
                 # watch the model
                 self.wandb_logger.watch(self.model, log='all')
@@ -265,12 +267,16 @@ class Trainer():
         self.result_dict['Test_acc'].append(epoch_acc)
         # Log the results
         self.wandb_logger.log({"Test_loss": epoch_loss, "Test_acc": epoch_acc})
+        save_figure_dir = os.path.join(self.args.save_results_dir, 'figures', self.args.paradigm, self.model_name, str(self.cur_sub))
+        draw_func = Draw(self.args, self.logger, self.cur_sub, self.model, test_loader, save_figure_dir)
+        draw_func.run()
         return epoch_acc
 
     def init_model(self, model_name):
         self.model_init, self.criterion = MODEL_REGISTOR.get(model_name)
         self.model = self.model_init(input_shape = self.dataset.input_shape, output_shape = self.dataset.output_shape)
         self.model_config = YamlHandler(os.path.join(self.args.config_dir, model_name + '.yaml')).read_yaml()
+
         if self.model_config[self.args.paradigm]['optimizer'].lower() == 'adam':
             self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.model_config[self.args.paradigm]['learning_rate'], betas=(0.5, 0.999))
         elif self.model_config[self.args.paradigm]['optimizer'].lower() == 'sgd':
@@ -294,6 +300,10 @@ class Trainer():
         self.model.to(self.device)
         self.criterion.to(self.device)
         self.initialize_parameters()
+        input_size = (1, self.dataset.input_shape[0], self.dataset.input_shape[1])
+        model_stats = summary(self.model, input_size)
+        self.logger.info(f"Model: {model_name}, Model stats: {model_stats}")
+        # self.logger.info(f"Model: {model_name}, Model params: {sum(p.numel() for p in self.model.parameters())}")
     def initialize_parameters(self):
         def weight_init(m):
             if isinstance(m, nn.Linear):
@@ -343,6 +353,7 @@ class Trainer():
     def sweep_train(self, model_name):
         """Training function for sweep agent"""
         # Initialize wandb with sweep configs
+        os.makedirs(f'./results/wandb/{self.model_name}', exist_ok=True)
         with wandb.init( dir=f'./results/wandb/{self.model_name}', name=f'sweep_{model_name}') as run:
             self.wandb_logger = run
             # Get hyperparameters from wandb
