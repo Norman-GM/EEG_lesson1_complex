@@ -45,6 +45,7 @@ class Trainer():
             self.dataset = Dataset_2a_Paradigm(self.data, self.label, self.args)
         else:
             raise NotImplementedError(f"Unknown dataset: {self.args.dataset_name}")
+
     def get_available_model(self):
         """
         Get the available models for the specified paradigm
@@ -106,7 +107,7 @@ class Trainer():
                     self.args.optimizer = self.model_config[self.args.paradigm]['optimizer']
                     self.args.epochs = self.model_config[self.args.paradigm]['num_epochs']
                 os.makedirs(os.path.join(self.args.save_models_dir, self.args.paradigm, self.model_name), exist_ok=True)
-                wandb_logger = wandb.init(entity='norman123', project='lesson_1_complex',
+                wandb_logger = wandb.init(entity='norman123', project='EEG_lesson1_complex',
                                           dir=f'./results/wandb/Cross_session/sub_{sub}/{self.model_name}',
                                           name='Cross_session_' + self.model_name +'_sub_' + str(sub) + '_' + get_cur_time(),
                                           resume='allow')
@@ -280,7 +281,6 @@ class Trainer():
         if self.model_config[self.args.paradigm]['optimizer'].lower() == 'adam':
             self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.model_config[self.args.paradigm]['learning_rate'], betas=(0.5, 0.999))
         elif self.model_config[self.args.paradigm]['optimizer'].lower() == 'sgd':
-
             self.optimizer = torch.optim.SGD(self.model.parameters(), lr=self.model_config[self.args.paradigm]['learning_rate'], momentum=0.9)
         elif self.model_config[self.args.paradigm]['optimizer'].lower() == 'adamw':
             self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.model_config[self.args.paradigm]['learning_rate'])
