@@ -1,8 +1,0 @@
-cross_session: # use params in https://github.com/eeyhsong/EEG-Conformer/blob/main/conformer.py
-  optimizer: Adam
-  batch_size: 72
-#  num_epochs: 10
-  num_epochs: 2000
-  learning_rate: 0.002
-  val_interval: 10
-  use_validation: False
