@@ -106,9 +106,11 @@ class Trainer():
                     self.args.batch_size = self.model_config[self.args.paradigm]['batch_size']
                     self.args.optimizer = self.model_config[self.args.paradigm]['optimizer']
                     self.args.epochs = self.model_config[self.args.paradigm]['num_epochs']
-                os.makedirs(os.path.join(self.args.save_models_dir, self.args.paradigm, self.model_name), exist_ok=True)
+                wandb_dir = os.path.join(self.args.save_models_dir, 'wandb', self.args.paradigm,self.model_name, str(sub))
+                os.makedirs(wandb_dir, exist_ok=True)
+
                 wandb_logger = wandb.init(entity='norman123', project='EEG_lesson1_complex',
-                                          dir=f'./results/wandb/Cross_session/sub_{sub}/{self.model_name}',
+                                          dir=str(wandb_dir),
                                           name='Cross_session_' + self.model_name +'_sub_' + str(sub) + '_' + get_cur_time(),
                                           resume='allow')
                 wandb_logger = init_wandb_config(wandb_logger, args=self.args, model_name=self.model_name)
@@ -353,8 +355,9 @@ class Trainer():
     def sweep_train(self, model_name):
         """Training function for sweep agent"""
         # Initialize wandb with sweep configs
-        os.makedirs(f'./results/wandb/{self.model_name}', exist_ok=True)
-        with wandb.init( dir=f'./results/wandb/{self.model_name}', name=f'sweep_{model_name}') as run:
+        wandb_dir = os.path.join(self.args.save_models_dir, 'wandb', self.args.paradigm, self.model_name, 'wandb_sweep')
+        os.makedirs(wandb_dir, exist_ok=True)
+        with wandb.init( dir=str(wandb_dir), name=f'sweep_{model_name}') as run:
             self.wandb_logger = run
             # Get hyperparameters from wandb
             config = wandb.config
